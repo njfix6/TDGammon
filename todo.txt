@@ -1,0 +1,16 @@
+need to make sure they cant end unless in bear off zone
+need to make bot
+need to add hole moves to valid moves in bot
+
+there will be a state and a move that needs to be logged
+
+
+a = learning rate
+
+
+O(t+1) = O(t) + a f(t) e(t)
+
+e(t) = delta et-1 + V(t)/delta(t)
+
+f(t) = V(t)(st+1) - V(t)(st) if t<f
+        z-V(t)(st)           if t=f
