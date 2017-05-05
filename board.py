@@ -21,68 +21,55 @@ class Board:
         [Marker(1), Marker(1), Marker(1), Marker(1), Marker(1)], \
         [], [], [], [], \
         [Marker(2), Marker(2)], \
-        []] # this is player 1's home, top right
+        [],\
+        [],\
+        []]
+        # 25 is player 1's home, top right
+        # 26 is player 1's hole
+        # 27 is player 2's holw
 
-        self.playerHole =[[], []]
 
     def move(self, player, markerLocation, diceRole, test = False):
         moveTo = self.isValidMove(player, markerLocation, diceRole)
-        print("move is valid? : ", moveTo)
-        if (moveTo):
-            if (markerLocation == 26):
-                currentMarker = self.playerHole[0][0]
-            elif(markerLocation == 27):
-                currentMarker = self.playerHole[1][0]
-            else:
-                currentMarker = self.board[markerLocation]
+        if (not moveTo is False):
             if(len(self.board[moveTo]) == 1 and (not self.board[moveTo][0].player == player)):
-                self.playerHole[1 if player==1 else 0].append(self.board[moveTo].pop())
-            if (moveTo >= 25):
-                moveTo = 25
-            elif (moveTo <=0):
-                moveTo = 0
+                self.board[27 if player==1 else 26].append(self.board[moveTo].pop())
+            self.board[moveTo].append(self.board[markerLocation].pop()) # pops of list and appends to list.
             if not test:
                 print("Marker: ", markerLocation, " move to: ", moveTo)
-
-            self.board[moveTo].append(self.board[markerLocation].pop()) # pops of list and appends to list.
             return True
+        if not test:
+            print("Marker: ", markerLocation, " cant be move to: ", moveTo)
         return False
     def isValidMove(self, player, markerLocation, diceRole):
-
-        if (len(self.playerHole[0]) and player == 1):
-            if(markerLocation == 26 and diceRole in range(6)):
+        #special cases
+        boardState = self.getBoardState(player)
+        if markerLocation == 25 or markerLocation == 0:
+            return False
+        if boardState == "knocked":
+            if(markerLocation == 26):
                 moveTo = diceRole
-            else:
-                return False
-        elif(len(self.playerHole[1]) and player == 2):
-            if(markerLocation == 27 and diceRole in range(18,24)):
-                moveTo = diceRole
+            elif markerLocation == 27:
+                moveTo = 25 - diceRole
             else:
                 return False
         else:
             if (player == 1):
                 moveTo = markerLocation+diceRole
-            if (player == 2):
+            elif (player == 2):
                 moveTo = markerLocation-diceRole
-        if (moveTo >= 25):
-            moveTo = 25
-        elif (moveTo <=0):
-            moveTo = 0
-        print("the final move to is : ", moveTo)
-        #this is the base of checking a move, the above are special cases
+            if (moveTo >= 25 or moveTo <= 0) and not boardState == "bearOff":
+                return False
+            elif boardState == "bearOff":
+                if (moveTo >= 25):
+                    moveTo = 25
+                elif (moveTo <=0):
+                    moveTo = 0
+
+        #basic moving logic
         if (len(self.board[markerLocation]) > 0 and self.board[markerLocation][0].player == player):
             if ((len(self.board[moveTo]) <= 1) or (self.board[moveTo][0].player == player)):
-                # check if in bear off
-
-                if (moveTo == 0 and player == 2):
-                    if (not self.isBearOff(2)):
-
-                        return False
-                elif (moveTo == 25 and player == 1):
-                    if (not self.isBearOff(1)):
-                        return False
                 return moveTo
-        print("it got to here")
         return False
 
     def winner(self):
@@ -114,24 +101,32 @@ class Board:
     # https://www.gnu.org/software/gnubg/manual/html_node/A-technical-description-of-the-Position-ID.html
     # encoded by the obove algorithm with a few changes
     def encodeBoard(self, playerTurn):
-        def encodeSide(playerTurn):
-            encodeString = ""
-            board = self.board
-            if playerTurn == 2:
+        def encodeSide(player):
+            encode = []
+            board = self.board[1:25]
+            if player == 2:
                 board = board[::-1]
             for spot in board:
-                if len(spot) == 0:
-                    encodeString += "0"
+                if len(spot) == 0 or not (spot[0].player == player):
+                    encode+=[0,0,0,0]
                 else:
-                    for marker in spot:
-                        if (marker.player == playerTurn):
-                            encodeString += "1"
-                    encodeString += "0"
-            for marker in self.playerHole[playerTurn - 1]:
-                encodeString += "1"
-            encodeString += "0"
-            return encodeString
-        encodeString = encodeSide(playerTurn) + encodeSide(2 if playerTurn==1 else 1)
+                    if(len(spot) == 1):
+                        encode+=[1,0,0,0]
+                    elif(len(spot) == 2):
+                        encode+=[1,1,0,0]
+                    else:
+                        encode+=[1,1,1,(len(spot)-3)/2]
+            return encode
+
+        encodeString = encodeSide(1) + encodeSide(2)
+        encodeString.append(len(self.board[26]) / 2)  #player 1 knocked off
+        encodeString.append(len(self.board[27]) / 2)   #plaer 2 knocked off
+        encodeString.append(len(self.board[0]) / 15) #player 1 successfull removed
+        encodeString.append(len(self.board[25]) / 15)#player 2 successfull removed
+        if playerTurn == 1:
+            encodeString+=[0,1]
+        else:
+            encodeString+=[1,0]
         return encodeString
 
 
@@ -147,13 +142,25 @@ class Board:
             if(i<10):
                 print(" ",end="")
             print(" ", end="")
-        for i in range(13,len(self.board)):
+        for i in range(13,len(self.board)-2):
             printMarker(i)
         print("      2:", end="")
-        print(len(self.playerHole[1]), end="")
+        print(len(self.board[27]), end="")
         print(":27")
         for i in range(12, -1, -1):
             printMarker(i)
         print("      1:", end="")
-        print(len(self.playerHole[0]), end ="")
+        print(len(self.board[26]), end ="")
         print(":26")
+
+
+    def getBoardState(self, player):
+        if  player == 1:
+            if len(self.board[26]):
+                return "knocked"
+        elif player == 2:
+            if len(self.board[27]):
+                return "knocked"
+        if self.isBearOff(player):
+            return "bearOff"
+        return "middle"

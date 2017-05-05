@@ -2,12 +2,14 @@ from board import Board
 from player import Player
 from tdAgent import TDAgent
 import diceSet
+from network import Network
 
 class Game:
     def __init__(self):
         self.players = [Player(0)]
         self.board = ""
         self.turn = -1
+        self.network = Network()
     def startGame(self):
         self.changeTurn()
         while (not self.gameComplete()):
@@ -47,7 +49,7 @@ class Game:
                     exit = 0
                 markerLocation = int(markerLocation)
                 diceNumber = int(input('What dice u want to move (1 or 2): '))
-            if not self.players[self.turn].takeTurn(self.board, markerLocation, diceNumber):
+            if not self.players[self.turn].takeTurn(self.board, markerLocation, diceNumber, learning = True, net = self.network):
                 exit = 0
         self.changeTurn()
     def gameComplete(self):

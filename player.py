@@ -16,10 +16,8 @@ class Player:
             if board.move(self.number, markerLocation, self.moves[diceNum]):
                 self.moves[diceNum] = True #probably dont need this line !!!!!!!!!!!!!!!
                 self.moves.pop(diceNum)
-                print ("Marker moved")
                 return True
             else:
-                print ("Cant move ", markerLocation)
                 return False
         else:
             print ("Move already completed")
